@@ -11,7 +11,7 @@ set(ROCM_INSTALL_LIBDIR lib)
 
 function(rocm_install_targets)
     set(options)
-    set(oneValueArgs PREFIX EXPORT)
+    set(oneValueArgs PREFIX EXPORT COMPONENT_GROUP)
     set(multiValueArgs TARGETS INCLUDE)
 
     cmake_parse_arguments(PARSE "${options}" "${oneValueArgs}" "${multiValueArgs}" ${ARGN})
@@ -22,41 +22,55 @@ function(rocm_install_targets)
         set(EXPORT_FILE ${PARSE_EXPORT})
     endif()
 
-
-    if(PARSE_PREFIX)
-        set(PREFIX_DIR ${PARSE_PREFIX})
-        set(BIN_INSTALL_DIR ${PARSE_PREFIX}/${CMAKE_INSTALL_BINDIR})
-        set(LIB_INSTALL_DIR ${PARSE_PREFIX}/${ROCM_INSTALL_LIBDIR})
-        set(INCLUDE_INSTALL_DIR ${PARSE_PREFIX}/${CMAKE_INSTALL_INCLUDEDIR})
-    else()
-        set(BIN_INSTALL_DIR ${CMAKE_INSTALL_BINDIR})
-        set(LIB_INSTALL_DIR ${ROCM_INSTALL_LIBDIR})
-        set(INCLUDE_INSTALL_DIR ${CMAKE_INSTALL_INCLUDEDIR})
+    set(COMPONENT_GROUP "libraries")
+    if(PARSE_COMPONENT_GROUP)
+       set(COMPONENT_GROUP ${PARSE_COMPONENT_GROUP})
     endif()
-    
-    foreach(TARGET ${PARSE_TARGETS})
-        foreach(INCLUDE ${PARSE_INCLUDE})
-            get_filename_component(INCLUDE_PATH ${INCLUDE} ABSOLUTE)
-            target_include_directories(${TARGET} PUBLIC $<BUILD_INTERFACE:${INCLUDE_PATH}>)
+       
+    if("${COMPONENT_GROUP}" STREQUAL "libraries")
+        if(PARSE_PREFIX)
+            set(PREFIX_DIR ${PARSE_PREFIX})
+            set(BIN_INSTALL_DIR ${PARSE_PREFIX}/${CMAKE_INSTALL_BINDIR})
+            set(LIB_INSTALL_DIR ${PARSE_PREFIX}/${ROCM_INSTALL_LIBDIR})
+            set(INCLUDE_INSTALL_DIR ${PARSE_PREFIX}/${CMAKE_INSTALL_INCLUDEDIR})
+        else()
+            set(BIN_INSTALL_DIR ${CMAKE_INSTALL_BINDIR})
+            set(LIB_INSTALL_DIR ${ROCM_INSTALL_LIBDIR})
+            set(INCLUDE_INSTALL_DIR ${CMAKE_INSTALL_INCLUDEDIR})
+        endif()
+        
+        foreach(TARGET ${PARSE_TARGETS})
+            foreach(INCLUDE ${PARSE_INCLUDE})
+                get_filename_component(INCLUDE_PATH ${INCLUDE} ABSOLUTE)
+                target_include_directories(${TARGET} PUBLIC $<BUILD_INTERFACE:${INCLUDE_PATH}>)
+            endforeach()
+            target_include_directories(${TARGET} INTERFACE $<INSTALL_INTERFACE:$<INSTALL_PREFIX>/include>)
         endforeach()
-        target_include_directories(${TARGET} INTERFACE $<INSTALL_INTERFACE:$<INSTALL_PREFIX>/include>)
-    endforeach()
 
-    foreach(INCLUDE ${PARSE_INCLUDE})
-        install(DIRECTORY ${INCLUDE}/ DESTINATION ${INCLUDE_INSTALL_DIR}
-            FILES_MATCHING 
-            PATTERN "*.h"
-            PATTERN "*.hpp"
-            PATTERN "*.hh"
-            PATTERN "*.hxx"
-        )
-    endforeach()
+        foreach(INCLUDE ${PARSE_INCLUDE})
+            install(DIRECTORY ${INCLUDE}/ DESTINATION ${INCLUDE_INSTALL_DIR}
+                FILES_MATCHING 
+                PATTERN "*.h"
+                PATTERN "*.hpp"
+                PATTERN "*.hh"
+                PATTERN "*.hxx"
+            )
+        endforeach()
 
-    install(TARGETS ${PARSE_TARGETS} 
-        EXPORT ${EXPORT_FILE}
-        RUNTIME DESTINATION ${BIN_INSTALL_DIR}
-        LIBRARY DESTINATION ${LIB_INSTALL_DIR}
-        ARCHIVE DESTINATION ${LIB_INSTALL_DIR})
+        install(TARGETS ${PARSE_TARGETS} 
+            EXPORT ${EXPORT_FILE}
+            RUNTIME DESTINATION ${BIN_INSTALL_DIR}
+            LIBRARY DESTINATION ${LIB_INSTALL_DIR}
+            ARCHIVE DESTINATION ${LIB_INSTALL_DIR}
+            )
+            #COMPONENT ${COMPONENT_GROUP})
+    else()
+        install(TARGETS ${PARSE_TARGETS}
+            EXPORT ${EXPORT_FILE}
+            RUNTIME DESTINATION ${BIN_INSTALL_DIR}
+            COMPONENT ${PARSE_TARGETS})
+    endif()
+     
 
 endfunction()
 
