@@ -65,10 +65,15 @@ function(rocm_install_targets)
             )
             #COMPONENT ${COMPONENT_GROUP})
     else()
+        set(BIN_INSTALL_DIR ${CMAKE_INSTALL_BINDIR})
+        message("--------------------------------")
+        message( STATUS "debug install client PARSE_TARGETS is: " ${PARSE_TARGETS} )
+        message("--------------------------------")
         install(TARGETS ${PARSE_TARGETS}
             EXPORT ${EXPORT_FILE}
             RUNTIME DESTINATION ${BIN_INSTALL_DIR}
-            COMPONENT ${PARSE_TARGETS})
+            DESTINATION ${BIN_INSTALL_DIR}
+            COMPONENT ${COMPONENT_GROUP})
     endif()
      
 

@@ -144,8 +144,8 @@ macro(rocm_create_package)
         #set(CPACK_RPM_PRE_UNINSTALL_SCRIPT_FILE "${PROJECT_BINARY_DIR}/debian/prerm")
 
         #cpack_add_component(Headers GROUP Development DEPENDS Libraries)
-        cpack_add_component(${PARSE_NAME} GROUP ${PARSE_COMPONENT_GROUP})
-        cpack_add_component_group(${PARSE_COMPONENT_GROUP})
+        cpack_add_component(${PARSE_NAME} GROUP ${COMPONENT_GROUP})
+        cpack_add_component_group(${COMPONENT_GROUP})
     endif()
     
     include(CPack)
