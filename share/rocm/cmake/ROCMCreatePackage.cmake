@@ -17,6 +17,7 @@ function(create_cpack_config filename)
   set(CPACK_COMPONENTS_ALL clients)
   set(CPACK_COMPONENTS_IGNORE_GROUPS 1)
   set(CPACK_GENERATOR "DEB")
+  set(CPACK_OUTPUT_CONFIG_FILE "${filename}")
   include(CPack)
 endfunction(create_cpack_config)
 
