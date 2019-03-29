@@ -11,7 +11,7 @@ set(ROCM_INSTALL_LIBDIR lib)
 
 function(rocm_install_targets)
     set(options)
-    set(oneValueArgs PREFIX EXPORT COMPONENT_GROUP)
+    set(oneValueArgs PREFIX EXPORT COMPONENT_NAME)
     set(multiValueArgs TARGETS INCLUDE)
 
     cmake_parse_arguments(PARSE "${options}" "${oneValueArgs}" "${multiValueArgs}" ${ARGN})
@@ -22,12 +22,25 @@ function(rocm_install_targets)
         set(EXPORT_FILE ${PARSE_EXPORT})
     endif()
 
-    set(COMPONENT_GROUP "libraries")
-    if(PARSE_COMPONENT_GROUP)
-       set(COMPONENT_GROUP ${PARSE_COMPONENT_GROUP})
+    set(COMPONENT_NAME "libraries")
+    if(PARSE_COMPONENT_NAME)
+       set(COMPONENT_NAME ${PARSE_COMPONENT_NAME})
     endif()
-       
-    if("${COMPONENT_GROUP}" STREQUAL "libraries")
+
+    if("${COMPONENT_NAME}" STREQUAL "clients")
+
+        if(PARSE_PREFIX)
+           set(BIN_INSTALL_DIR ${PARSE_PREFIX}/${CMAKE_INSTALL_BINDIR})
+        else()
+            set(BIN_INSTALL_DIR ${CMAKE_INSTALL_BINDIR})
+        endif()
+
+        install(TARGETS ${PARSE_TARGETS}
+                EXPORT ${EXPORT_FILE}
+                DESTINATION ${BIN_INSTALL_DIR}
+                COMPONENT ${COMPONENT_NAME})
+
+    else() # all non-clients build go into default
         if(PARSE_PREFIX)
             set(PREFIX_DIR ${PARSE_PREFIX})
             set(BIN_INSTALL_DIR ${PARSE_PREFIX}/${CMAKE_INSTALL_BINDIR})
@@ -38,7 +51,7 @@ function(rocm_install_targets)
             set(LIB_INSTALL_DIR ${ROCM_INSTALL_LIBDIR})
             set(INCLUDE_INSTALL_DIR ${CMAKE_INSTALL_INCLUDEDIR})
         endif()
-        
+
         foreach(TARGET ${PARSE_TARGETS})
             foreach(INCLUDE ${PARSE_INCLUDE})
                 get_filename_component(INCLUDE_PATH ${INCLUDE} ABSOLUTE)
@@ -49,7 +62,7 @@ function(rocm_install_targets)
 
         foreach(INCLUDE ${PARSE_INCLUDE})
             install(DIRECTORY ${INCLUDE}/ DESTINATION ${INCLUDE_INSTALL_DIR}
-                FILES_MATCHING 
+                FILES_MATCHING
                 PATTERN "*.h"
                 PATTERN "*.hpp"
                 PATTERN "*.hh"
@@ -57,25 +70,13 @@ function(rocm_install_targets)
             )
         endforeach()
 
-        install(TARGETS ${PARSE_TARGETS} 
+        install(TARGETS ${PARSE_TARGETS}
             EXPORT ${EXPORT_FILE}
             RUNTIME DESTINATION ${BIN_INSTALL_DIR}
             LIBRARY DESTINATION ${LIB_INSTALL_DIR}
             ARCHIVE DESTINATION ${LIB_INSTALL_DIR}
             )
-            #COMPONENT ${COMPONENT_GROUP})
-    else()
-        set(BIN_INSTALL_DIR ${CMAKE_INSTALL_BINDIR})
-        message("--------------------------------")
-        message( STATUS "debug install client PARSE_TARGETS is: " ${PARSE_TARGETS} )
-        message("--------------------------------")
-        install(TARGETS ${PARSE_TARGETS}
-            EXPORT ${EXPORT_FILE}
-            RUNTIME DESTINATION ${BIN_INSTALL_DIR}
-            DESTINATION ${BIN_INSTALL_DIR}
-            COMPONENT ${COMPONENT_GROUP})
     endif()
-     
 
 endfunction()
 

@@ -11,9 +11,27 @@ find_program(MAKE_NSIS_EXE makensis)
 find_program(RPMBUILD_EXE rpmbuild)
 find_program(DPKG_EXE dpkg)
 
+function(create_cpack_config filename)
+  cpack_add_component("clients")
+  set (CPACK_DEB_COMPONENT_INSTALL ON)
+  set(CPACK_COMPONENTS_ALL clients)
+  set(CPACK_COMPONENTS_IGNORE_GROUPS 1)
+  #set(CPACK_PACKAGE_NAME "clients")
+  #set(CPACK_PACKAGE_VENDOR "Advanced Micro Devices, Inc")
+  #set(CPACK_DEBIAN_PACKAGE_MAINTAINER "sem")
+  #set(CPACK_DEBIAN_PACKAGE_SECTION "devel")
+  set(CPACK_GENERATOR "DEB")
+
+  message("***************************")
+  set(CPACK_OUTPUT_CONFIG_FILE "${filename}")
+  message( STATUS "debug, create cpack file: " ${filename} )
+  message("***************************")
+  include(CPack)
+endfunction(create_cpack_config)
+
 macro(rocm_create_package)
     set(options LDCONFIG PTH)
-    set(oneValueArgs NAME DESCRIPTION SECTION MAINTAINER LDCONFIG_DIR PREFIX COMPONENT_GROUP)
+    set(oneValueArgs NAME DESCRIPTION SECTION MAINTAINER LDCONFIG_DIR PREFIX COMPONENT_NAME)
     set(multiValueArgs DEPENDS)
 
     cmake_parse_arguments(PARSE "${options}" "${oneValueArgs}" "${multiValueArgs}" ${ARGN})
@@ -25,18 +43,32 @@ macro(rocm_create_package)
     set(CPACK_PACKAGE_VERSION_MAJOR ${PROJECT_VERSION_MAJOR})
     set(CPACK_PACKAGE_VERSION_MINOR ${PROJECT_VERSION_MINOR})
     set(CPACK_PACKAGE_VERSION_PATCH ${PROJECT_VERSION_PATCH})
+    
+    set(CPACK_DEBIAN_PACKAGE_MAINTAINER ${PARSE_MAINTAINER})
+    set(CPACK_DEBIAN_PACKAGE_SECTION "devel")
+        
+    if(PARSE_DEPENDS)
+        string(REPLACE ";" ", " DEPENDS "${PARSE_DEPENDS}")
+        set(CPACK_DEBIAN_PACKAGE_DEPENDS "${DEPENDS}")
+        set(CPACK_RPM_PACKAGE_REQUIRES "${DEPENDS}")
+    endif()
+        
     if(NOT CMAKE_HOST_WIN32)
         set( CPACK_SET_DESTDIR ON CACHE BOOL "Boolean toggle to make CPack use DESTDIR mechanism when packaging" )
     endif()
 
-    set(COMPONENT_GROUP "libraries")
-    if(PARSE_COMPONENT_GROUP)
-       set(COMPONENT_GROUP ${PARSE_COMPONENT_GROUP})
+    set(COMPONENT_NAME "libraries")
+    if(PARSE_COMPONENT_NAME)
+       set(COMPONENT_NAME ${PARSE_COMPONENT_NAME})
     endif()
 
-    if("${COMPONENT_GROUP}" STREQUAL "libraries")
-        set(CPACK_DEBIAN_PACKAGE_MAINTAINER ${PARSE_MAINTAINER})
-        set(CPACK_DEBIAN_PACKAGE_SECTION "devel")
+    if("${COMPONENT_NAME}" STREQUAL "clients")
+
+        create_cpack_config(CPackConfig-clients.cmake)
+        add_custom_target(package_clients cpack --config ../clients/CPackConfig-clients.cmake)
+
+    else ()
+        
 
         set(CPACK_NSIS_MODIFY_PATH On)
         set(CPACK_NSIS_PACKAGE_NAME ${PARSE_NAME})
@@ -55,12 +87,6 @@ macro(rocm_create_package)
 
         if(EXISTS ${DPKG_EXE})
             list(APPEND CPACK_GENERATOR "DEB")
-        endif()
-
-        if(PARSE_DEPENDS)
-            string(REPLACE ";" ", " DEPENDS "${PARSE_DEPENDS}")
-            set(CPACK_DEBIAN_PACKAGE_DEPENDS "${DEPENDS}")
-            set(CPACK_RPM_PACKAGE_REQUIRES "${DEPENDS}")
         endif()
 
         set(LIB_DIR ${CMAKE_INSTALL_PREFIX}/${CMAKE_INSTALL_LIBDIR})
@@ -103,50 +129,8 @@ macro(rocm_create_package)
                 ")
             endforeach()
         endif()
-        
-    else()
+        include(CPack)
 
-        set(CPACK_DEBIAN_PACKAGE_MAINTAINER ${PARSE_MAINTAINER})
-        set(CPACK_DEBIAN_PACKAGE_SECTION "devel")
-
-        set(CPACK_NSIS_MODIFY_PATH On)
-        set(CPACK_NSIS_PACKAGE_NAME ${PARSE_NAME})
-
-        set(CPACK_RPM_PACKAGE_RELOCATABLE Off)
-        set( CPACK_RPM_PACKAGE_AUTOREQPROV Off CACHE BOOL "turns off rpm autoreqprov field; packages explicity list dependencies" )
-
-        set(CPACK_GENERATOR "")
-        if(EXISTS ${MAKE_NSIS_EXE})
-            list(APPEND CPACK_GENERATOR "NSIS")
-        endif()
-
-        if(EXISTS ${RPMBUILD_EXE})
-            list(APPEND CPACK_GENERATOR "RPM")
-        endif()
-
-        if(EXISTS ${DPKG_EXE})
-            list(APPEND CPACK_GENERATOR "DEB")
-        endif()
-
-        if(PARSE_DEPENDS)
-            string(REPLACE ";" ", " DEPENDS "${PARSE_DEPENDS}")
-            set(CPACK_DEBIAN_PACKAGE_DEPENDS "${DEPENDS}")
-            set(CPACK_RPM_PACKAGE_REQUIRES "${DEPENDS}")
-        endif()
-
-        set(LIB_DIR ${CMAKE_INSTALL_PREFIX}/${CMAKE_INSTALL_LIBDIR})
-        if(PARSE_PREFIX)
-            set(LIB_DIR ${CMAKE_INSTALL_PREFIX}/${PARSE_PREFIX}/${CMAKE_INSTALL_LIBDIR})
-        endif()
-
-        #set(CPACK_DEBIAN_PACKAGE_CONTROL_EXTRA "${PROJECT_BINARY_DIR}/debian/postinst;${PROJECT_BINARY_DIR}/debian/prerm")
-        #set(CPACK_RPM_POST_INSTALL_SCRIPT_FILE "${PROJECT_BINARY_DIR}/debian/postinst")
-        #set(CPACK_RPM_PRE_UNINSTALL_SCRIPT_FILE "${PROJECT_BINARY_DIR}/debian/prerm")
-
-        #cpack_add_component(Headers GROUP Development DEPENDS Libraries)
-        cpack_add_component(${PARSE_NAME} GROUP ${COMPONENT_GROUP})
-        cpack_add_component_group(${COMPONENT_GROUP})
     endif()
-    
-    include(CPack)
+
 endmacro()
