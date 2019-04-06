@@ -28,19 +28,25 @@ function(rocm_install_targets)
     endif()
 
     if("${COMPONENT_NAME}" STREQUAL "clients")
-
+        set (ROCM_INSTALL_CLIENTS clients)
         if(PARSE_PREFIX)
-           set(BIN_INSTALL_DIR ${PARSE_PREFIX}/${CMAKE_INSTALL_BINDIR})
-        else()
-            set(BIN_INSTALL_DIR ${CMAKE_INSTALL_BINDIR})
+            set(ROCM_INSTALL_CLIENTS ${PARSE_PREFIX}/${ROCM_INSTALL_CLIENTS})
+        endif()
+
+        if(PARSE_DEPENDS)
+            rocm_list_split(PARSE_DEPENDS PACKAGE DEPENDS_LIST)
+            foreach(DEPEND ${DEPENDS_LIST})
+                rocm_write_package_template_function(${CONFIG_TEMPLATE} find_dependency ${${DEPEND}})
+            endforeach()
         endif()
 
         install(TARGETS ${PARSE_TARGETS}
                 EXPORT ${EXPORT_FILE}
-                DESTINATION ${BIN_INSTALL_DIR}
+                DESTINATION ${ROCM_INSTALL_CLIENTS}
                 COMPONENT ${COMPONENT_NAME})
 
     else() # all non-clients build go into default
+
         if(PARSE_PREFIX)
             set(PREFIX_DIR ${PARSE_PREFIX})
             set(BIN_INSTALL_DIR ${PARSE_PREFIX}/${CMAKE_INSTALL_BINDIR})
